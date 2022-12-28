@@ -1,1 +1,0 @@
-pre-commit==v2.21.0
