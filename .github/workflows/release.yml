@@ -1,0 +1,64 @@
+name: "Monitor pre-commit version and release"
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '2 */6 * * *'
+
+jobs:
+  check-precommit-release-and-release:
+    name: "Check pre-commit release and build if necessary"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+
+      - name: Get pre-commit release
+        id: retrieve-release
+        run: |
+          set -e
+          PRECOMMIT_LATEST="$(curl -s https://api.github.com/repos/pre-commit/pre-commit/releases/latest | jq -r .tag_name)"
+          [ "$PRECOMMIT_LATEST" = "null" ] && echo "Bad release version: $PRECOMMIT_LATEST" && exit 1
+          git fetch --tags
+          [ -e ./.git/refs/tags/"$PRECOMMIT_LATEST" ] && exit 0
+          echo "pre-commit==$PRECOMMIT_LATEST" | tee requirements.txt
+          echo BUILD_REQUIRED=y >>$GITHUB_ENV
+          echo PRECOMMIT_LATEST=$PRECOMMIT_LATEST >>$GITHUB_ENV
+          git config user.name "GitHub Actions Bot"
+          git config user.email "<>"
+          git add requirements.txt
+          git commit -m "Set pre-commit version to $PRECOMMIT_LATEST"
+          git tag $PRECOMMIT_LATEST
+          git push origin
+          git push --tags
+
+      - name: Check Docker Hub cred defined
+        if: env.BUILD_REQUIRED == 'y'
+        id: docker-stuff
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          echo DOCKER_CREDS_DEFINED=$([ -z "$DOCKERHUB_USERNAME" -o -z "DOCKERHUB_TOKEN" ] && echo n || echo y) >>$GITHUB_ENV
+          echo PROJECT_NAME=${GITHUB_REPOSITORY##*/} >>$GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        if: env.DOCKER_CREDS_DEFINED == 'y'
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Hub
+        if: env.DOCKER_CREDS_DEFINED == 'y'
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        if: env.DOCKER_CREDS_DEFINED == 'y'
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ steps.docker-stuff.outputs.PROJECT_NAME }}:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ steps.docker-stuff.outputs.PROJECT_NAME }}:${{ env.PRECOMMIT_LATEST }}
