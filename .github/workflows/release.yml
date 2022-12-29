@@ -3,7 +3,7 @@ name: "Monitor pre-commit version and release"
 on:
   workflow_dispatch:
   schedule:
-    - cron: '2 */6 * * *'
+    - cron: '24 1-23/6 * * *'
 
 jobs:
   check-precommit-release-and-release:
