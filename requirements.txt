@@ -1,1 +1,1 @@
-pre-commit==v2.21.0
+pre-commit==v3.0.0
