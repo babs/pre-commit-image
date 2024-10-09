@@ -1,3 +1,7 @@
 # pre-commit-image
 
-This repo monitors [`pre-commit`](https://pre-commit.com/) releases then build and publish a Debian bullseye slim docker image available at https://hub.docker.com/r/beardedbabs/pre-commit-image
+This repo monitors [`pre-commit`](https://pre-commit.com/) releases then build and publish a Debian bookworm slim docker image available at:
+
+* `ghcr.io/babs/pre-commit-image:latest`
+* `quay.io/beardedbabs/pre-commit-image:latest`
+* `beardedbabs/pre-commit-image:latest`
