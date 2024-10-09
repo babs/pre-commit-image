@@ -1,5 +1,7 @@
 FROM debian:bookworm-slim
 
+LABEL org.opencontainers.image.source=https://github.com/babs/pre-commit-image
+
 COPY . /
 
 RUN set -e \
