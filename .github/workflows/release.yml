@@ -26,7 +26,8 @@ jobs:
           [ "$PRECOMMIT_LATEST" = "null" ] && echo "Bad release version: $PRECOMMIT_LATEST" && exit 1
           git fetch --tags
           [ -e ./.git/refs/tags/"$PRECOMMIT_LATEST" ] && exit 0
-          echo "pre-commit==$PRECOMMIT_LATEST" | tee requirements.txt
+          sed -i "s/^pre-commit==.*/pre-commit==$PRECOMMIT_LATEST/" requirements.txt
+          grep -qxF "pre-commit==$PRECOMMIT_LATEST" requirements.txt
           echo BUILD_REQUIRED=y >>$GITHUB_ENV
           echo PRECOMMIT_LATEST=$PRECOMMIT_LATEST >>$GITHUB_ENV
           git config user.name "GitHub Actions Bot"
@@ -79,6 +80,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
+          target: base
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ steps.docker-stuff.outputs.PROJECT_NAME }}:latest
@@ -87,3 +89,18 @@ jobs:
             quay.io/${{ secrets.QUAYIO_USERNAME }}/${{ steps.docker-stuff.outputs.PROJECT_NAME }}:${{ env.PRECOMMIT_LATEST }}
             ghcr.io/${{ github.repository }}:latest
             ghcr.io/${{ github.repository }}:${{ env.PRECOMMIT_LATEST }}
+
+      - name: Build and push (node)
+        if: env.DOCKER_CREDS_DEFINED == 'y'
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          target: node
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ steps.docker-stuff.outputs.PROJECT_NAME }}:latest-node
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ steps.docker-stuff.outputs.PROJECT_NAME }}:${{ env.PRECOMMIT_LATEST }}-node
+            quay.io/${{ secrets.QUAYIO_USERNAME }}/${{ steps.docker-stuff.outputs.PROJECT_NAME }}:latest-node
+            quay.io/${{ secrets.QUAYIO_USERNAME }}/${{ steps.docker-stuff.outputs.PROJECT_NAME }}:${{ env.PRECOMMIT_LATEST }}-node
+            ghcr.io/${{ github.repository }}:latest-node
+            ghcr.io/${{ github.repository }}:${{ env.PRECOMMIT_LATEST }}-node
