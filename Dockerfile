@@ -2,7 +2,7 @@ FROM python:3.14-slim-trixie AS base
 
 LABEL org.opencontainers.image.source=https://github.com/babs/pre-commit-image
 
-COPY . /
+COPY requirements.txt /
 
 RUN set -e \
     && useradd -ms /bin/bash -d /workdir user \
